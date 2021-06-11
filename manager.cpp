@@ -167,7 +167,7 @@ void Manager::start() {
 
 void Manager::write_on_pipe(string pipe, string message) {
     int fd = open(pipe.c_str(), O_WRONLY | O_TRUNC);
-    write(fd, message.c_str(), strlen(message.c_str()) + 1);
+    write(fd, message.c_str(), message.size() + 1);
     close(fd);
 }
 
@@ -175,7 +175,7 @@ void Manager::connect(int client_number, int router_number, int port_num) {
     // Informing client that will be connected to the mentioned router
     string client_pipe = "./manager_client_" + to_string(client_number) + ".pipe";
     string client_reading_pipe = "./router_" + to_string(router_number) + "_port_" + to_string(port_num) + ".pipe";
-    string message = "CONNECTED_TO_router " + client_reading_pipe;
+    string message = "CONNECTED_TO_ROUTER " + client_reading_pipe;
     write_on_pipe(client_pipe, message);
     cout << "Message to " << client_pipe << " : " << message << "\n";
     
@@ -183,7 +183,7 @@ void Manager::connect(int client_number, int router_number, int port_num) {
     // Informing router that will be connected to the mentioned client
     string router_pipe = "./manager_router_" + to_string(router_number) + ".pipe";
     string router_reading_pipe = "./client_" + to_string(client_number) + "_router_" + to_string(router_number) + "_port_" + to_string(port_num) + ".pipe";
-    string message2 = "CONNECTED_TO_client " + router_reading_pipe;
+    string message2 = "CONNECTED_TO_CLIENT " + router_reading_pipe;
     write_on_pipe(router_pipe,message2);
     cout << "Message to " << router_pipe << " : " << message2 << "\n";
     vector<int> new_busy_port = {router_number, port_num};
@@ -195,14 +195,14 @@ void Manager::connect_routers(int router1, int port1, int router2, int port2) {
     // Informing first router that will be connected to the second router
     string router_pipe = "./manager_router_" + to_string(router1) + ".pipe";
     string first_router_reading_pipe = "./router_" + to_string(router2) + "_port_" + to_string(port2) + ".pipe";
-    string message = "CONNECTED_TO_router " + first_router_reading_pipe + " WRITE_ON_PORT " + to_string(port1);
+    string message = "CONNECTED_TO_ROUTER " + first_router_reading_pipe + " WRITE_ON_PORT " + to_string(port1);
     write_on_pipe(router_pipe, message);
     cout << "Message to " << router_pipe << " : " << message << "\n";
 
     // Informing second router that will be connected to the first router
     string router_pipe2 = "./manager_router_" + to_string(router2) + ".pipe";
     string second_router_reading_pipe = "./router_" + to_string(router1) + "_port_" + to_string(port1) + ".pipe";
-    string message2 = "CONNECTED_TO_router " + second_router_reading_pipe + " WRITE_ON_PORT " + to_string(port2);
+    string message2 = "CONNECTED_TO_ROUTER " + second_router_reading_pipe + " WRITE_ON_PORT " + to_string(port2);
     write_on_pipe(router_pipe2,message2);
     cout << "Message to " << router_pipe2 << " : " << message2 << "\n";
     
