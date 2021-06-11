@@ -37,9 +37,9 @@ vector<string> tokenize(string message) {
     vector <string> command_tokens(begin, end);
     return command_tokens;    
 }
-int search_ft(vector < vector<string> > forwarding_table, string system) {
+int search_ft(vector < vector <string> > forwarding_table, string host) {
     for(int i = 0; i < forwarding_table.size(); i++) {
-        if(forwarding_table[i][0] == stoi(system)) return forwarding_table[i][1];
+        if(forwarding_table[i][0] == host) return stoi(forwarding_table[i][1]);
     }
     return -1;
 }
@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
                     vector <string> frame = tokenize(message);
                     string destination = frame[1];
                     string source = frame[0];
-                    int port = search_ft(forwarding_table, destination); // ask about finding port
+                    int port = search_ft(forwarding_table, destination);
                     int source_port;
                     string sending_pipe = "./router_" + to_string(router_id) + "_port_" + to_string(port) + ".pipe";
                     write_on_pipe(sending_pipe, message);
