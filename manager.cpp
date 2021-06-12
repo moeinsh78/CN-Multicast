@@ -31,10 +31,10 @@ Manager::Manager() {
 void Manager::start() {
     for(int i = 0; i < NUM_OF_CLIENTS; i++) {
         if(is_group_server[i]) {
-            create_client(i + 1);
+            create_group_server(i + 1);
         }
         else {
-            create_group_server(i + 1);
+            create_client(i + 1);
         }
     }
     
@@ -68,14 +68,6 @@ void Manager::execute_command(string command) {
         if(is_group_server[user_num - 1])
             set_multicast_ip(user_num, command_tokens[1]);
     }
-    else if(command_tokens[0] == "connectrouter") {
-    }
-    else if (command_tokens[0] == "send") {
-    }
-    else if (command_tokens[0] == "receive") {
-    }
-    else if (command_tokens[0] == "spanningtree") {
-    }
     else {
         return;
     }
@@ -104,7 +96,6 @@ void Manager::connect(int client_number, int router_number, int port_num) {
     string message2 = "CONNECTED_TO_CLIENT " + router_reading_pipe;
     write_on_pipe(router_pipe,message2);
     cout << "Message to " << router_pipe << " : " << message2 << "\n";
-    vector<int> new_busy_port = {router_number, port_num};
     return;
 }
 
@@ -195,7 +186,7 @@ void Manager::create_client(int client_num) {
 void Manager::create_group_server(int server_num) {
     string pipe_name = "./manager_client_" + to_string(server_num) + ".pipe";
     mkfifo(pipe_name.c_str(), 0666);
-    
+
     pid_t server_pid;
     server_pid = fork();
     if(server_pid == 0) {
