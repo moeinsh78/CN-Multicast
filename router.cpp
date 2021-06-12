@@ -127,16 +127,38 @@ int main(int argc, char **argv) {
                     }
                 }
                 else {
+                    vector <string> tokens;
+                    stringstream check(reading_list[i]);
+                    string ss;
+                    while(getline(check, ss, '_'))
+                    {
+                        tokens.push_back(ss);
+                    }
+                    int received_port = stoi(tokens[3]);
                     message = read_message_from_pipe(fd);
+                    string multicast_ip, server_ip;
                     vector <string> packet = tokenize(message);
-                    string destination = packet[1];
-                    string source = packet[0];
-                    int port = search_ft(forwarding_table, destination);
-                    int source_port;
-                    string sending_pipe = "./router_" + to_string(router_id) + "_port_" + to_string(port) + ".pipe";
-                    write_on_pipe(sending_pipe, message);
-                    cout << "router "<< router_num << " sent the packet to the host " << destination << " with port " << port << endl; 
-                    close(fd);
+                    if (packet[0] == "BROADCAST_GROUP") {
+                        multicast_ip = packet[1];
+                        server_ip = packet[2];
+                        int port = search_ft(forwarding_table, server_ip);
+                        if( port == received_port)
+                            broadcast(message, router_num, stoi(ports_num), port);
+                        else {
+                            close(fd);
+                            continue;
+                        }
+                    }
+                    else {
+                        string destination = packet[1];
+                        string source = packet[0];
+                        int port = search_ft(forwarding_table, destination);
+                        int source_port;
+                        string sending_pipe = "./router_" + to_string(router_id) + "_port_" + to_string(port) + ".pipe";
+                        write_on_pipe(sending_pipe, message);
+                        cout << "router "<< router_num << " sent the packet to the host " << destination << " with port " << port << endl; 
+                        close(fd);
+                    }
                 }
             }
             else close(fd);

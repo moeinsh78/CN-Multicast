@@ -37,7 +37,7 @@ private:
     // std::vector<int> router_ports;
     // std::vector<std::string> clients_ip;
     // std::vector<std::string> routers_ip;
-    string logged_in_client;
+    std::string logged_in_client;
 
     std::vector< std::vector<int> > clients_connections;
     std::vector< std::vector<int> > routers_connections;

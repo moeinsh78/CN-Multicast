@@ -56,14 +56,21 @@ void write_on_pipe(string pipe, string message) {
     close(fd);
     return;
 }
+
+void broadcast_new_group(string multicast_group_ip, string group_server_ip, string writing_pipe_name) {
+    string message = "BROADCAST_GROUP " + multicast_group_ip + " " + group_server_ip + " ";
+    write_on_pipe(writing_pipe_name, message);
+}
+
+
 int main(int argc, char **argv) {
     string group_multicast_ip = "";
     vector<string> pipe_file_names;
-    string group_server_num(argv[1]);
-    string manager_pipe = "./manager_server_" + group_server_num + ".pipe";
+    string group_server_ip(argv[1]);
+    string manager_pipe = "./manager_client_" + group_server_ip + ".pipe";
 
     pipe_file_names.push_back(manager_pipe);
-    cout << "New group server process created -- Num: " << group_server_num << endl;
+    cout << "New group server process created -- Num: " << group_server_ip << endl;
 
     struct timeval tv;
     tv.tv_sec = 5;
@@ -103,10 +110,11 @@ int main(int argc, char **argv) {
                 router_reading_pipe = command_tokens[1];
                 mkfifo(router_reading_pipe.c_str(), 0666);
                 cout << "Pipe created with name: " << router_reading_pipe << endl;
-                router_writing_pipe = "./client_" + group_server_num + "_" + router_reading_pipe.erase(0,2) ;
+                router_writing_pipe = "./client_" + group_server_ip + "_" + router_reading_pipe.erase(0,2) ;
             }
             else if(command_tokens[0] == "MULTICAST_IP") {
                 group_multicast_ip = command_tokens[1];
+                broadcast_new_group(group_multicast_ip, group_server_ip, router_reading_pipe);
             }
             // else if(command_tokens[0] == "SEND") {
             //     string destination = command_tokens[2];

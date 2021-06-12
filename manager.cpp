@@ -68,9 +68,7 @@ void Manager::execute_command(string command) {
         if(is_group_server[user_num - 1])
             set_multicast_ip(user_num, command_tokens[1]);
     }
-    else {
-        return;
-    }
+    
     return;
 }
 
@@ -186,7 +184,7 @@ void Manager::create_client(int client_num) {
 void Manager::create_group_server(int server_num) {
     string pipe_name = "./manager_client_" + to_string(server_num) + ".pipe";
     mkfifo(pipe_name.c_str(), 0666);
-
+    
     pid_t server_pid;
     server_pid = fork();
     if(server_pid == 0) {
