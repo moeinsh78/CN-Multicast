@@ -21,16 +21,16 @@ client.out: client.o
 manager.o: manager.cpp manager.hpp settings.h
 	$(CC) -c manager.cpp -o manager.o
 
-client.o: client.cpp settings.h
+client.o: client.cpp 
 	$(CC) -c client.cpp -o client.o
 
 router.o: router.cpp settings.h
 	$(CC) -c router.cpp -o router.o
 
-group_server.o: group_server.cpp settings.h
+group_server.o: group_server.cpp 
 	$(CC) -c group_server.cpp -o group_server.o
 
-main.o: main.cpp manager.hpp settings.h
+main.o: main.cpp 
 	$(CC) -c main.cpp -o main.o
 
 

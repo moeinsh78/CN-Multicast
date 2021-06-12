@@ -25,11 +25,13 @@ string read_message_from_pipe(int pipe) {
     string message(msg);
     return message;
 }
+
 void write_on_pipe(string pipe, string message) {
     int fd = open(pipe.c_str(), O_TRUNC | O_WRONLY );
     write(fd, message.c_str(), message.size()+ 1);
     close(fd);
 }
+
 vector<string> tokenize(string message) {
     stringstream s_stream(message);
     istream_iterator <string> begin(s_stream);
@@ -37,24 +39,29 @@ vector<string> tokenize(string message) {
     vector <string> command_tokens(begin, end);
     return command_tokens;    
 }
+
 int search_ft(vector < vector <string> > forwarding_table, string host) {
     for(int i = 0; i < forwarding_table.size(); i++) {
         if(forwarding_table[i][0] == host) return stoi(forwarding_table[i][1]);
     }
     return -1;
 }
+
 string search_writings(vector < vector<string> > writing_list, string switch_num) {
     for(int i = 0; i < writing_list.size(); i++) {
         if(writing_list[i][0] == switch_num) return writing_list[i][1];
     }
     return "";
 }
+
 void broadcast(string message, string switch_num, int ports_num, int source_port) {
     for(int i = 0; i < ports_num; i++) {
-        if(source_port == i+1) continue;
+        if(source_port == i + 1) 
+            continue;
         string pipe = "./switch_" + switch_num + "_port_" + to_string(i+1) + ".pipe";
         write_on_pipe(pipe, message);
     }
+    return;
 }
 
 int main(int argc, char **argv) {

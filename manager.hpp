@@ -15,8 +15,6 @@
 #include <sys/wait.h> 
 #include <list> 
 
-#include "settings.h"
-
 #define INF 10000
 
 class Manager {

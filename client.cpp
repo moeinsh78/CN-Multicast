@@ -27,26 +27,26 @@ vector<string> tokenize(string message) {
     vector <string> command_tokens(begin, end);
     return command_tokens;    
 }
-vector<string> make_frames(string file, string source, string destination) {
+vector<string> make_packets(string file, string source, string destination) {
     int pipe = open(file.c_str(), O_RDONLY | O_NONBLOCK);
     char temp[100000];
     read(pipe, temp, 100000);
     string msg(temp);
-    vector<string> frames;
+    vector<string> packets;
     while(1) {
-        string frame;
-        frame = source + " " + destination + " ";
+        string packet;
+        packet = source + " " + destination + " ";
         if(msg.size() <= 50) { 
-            frame+=msg;
-            frame += " 1";
-            frames.push_back(frame);
-            return frames;
+            packet+=msg;
+            packet += " 1";
+            packets.push_back(packet);
+            return packets;
         }
         for(string::size_type i = 0; i < 50; ++i) {
-            frame += msg[i];
+            packet += msg[i];
         }
-        frame += " 0";
-        frames.push_back(frame);
+        packet += " 0";
+        packets.push_back(packet);
         msg.erase(0,50);
     }
 }
@@ -68,8 +68,8 @@ int main(int argc, char **argv) {
     tv.tv_sec = 5;
     tv.tv_usec = 0;
 
-    string router_reading_pipe;
-    string router_writing_pipe;
+    string client_reading_pipe;
+    string client_writing_pipe;
 
     fd_set rfds;
     int max_fd;
@@ -81,14 +81,14 @@ int main(int argc, char **argv) {
         FD_SET(manager, &rfds);
         max_fd = manager;
 
-        if(router_reading_pipe != "") {
-            router_p = open(router_reading_pipe.c_str(), O_RDONLY | O_NONBLOCK);
+        if(client_reading_pipe != "") {
+            router_p = open(client_reading_pipe.c_str(), O_RDONLY | O_NONBLOCK);
             FD_SET(router_p, &rfds);
             max_fd = router_p;
         }
 
         if (!select(max_fd + 1, &rfds, NULL, NULL, &tv)) {
-            if(router_reading_pipe != "") {
+            if(client_reading_pipe != "") {
                 close(max_fd);
             }
             close(manager);
@@ -99,41 +99,43 @@ int main(int argc, char **argv) {
             string message = read_message_from_pipe(manager);
             vector <string> command_tokens = tokenize(message);
             if (command_tokens[0] == "CONNECTED_TO_ROUTER") {
-                router_reading_pipe = command_tokens[1];
-                mkfifo(router_reading_pipe.c_str(), 0666);
-                cout << "Pipe created with name: " << router_reading_pipe << endl;
-                router_writing_pipe = "./client_" + client_num + "_" + router_reading_pipe.erase(0,2) ;
+                client_reading_pipe = command_tokens[1];
+                mkfifo(client_reading_pipe.c_str(), 0666);
+                cout << "Pipe created with name: " << client_reading_pipe << endl;
+                client_writing_pipe = "./client_" + client_num + "_" + client_reading_pipe.erase(0,2) ;
             }
             else if(command_tokens[0] == "SEND") {
                 string destination = command_tokens[2];
                 string file = command_tokens[1];
-                vector<string> frames = make_frames(file, client_num, destination);
-                for(int i = 0; i < frames.size(); i++) {
-                    write_on_pipe(router_writing_pipe,frames[i]);
+                vector<string> packets = make_packets(file, client_num, destination);
+                for(int i = 0; i < packets.size(); i++) {
+                    write_on_pipe(client_writing_pipe,packets[i]);
                     sleep(2);
                 }
-                cout << "client " << client_num << " sent all the frames to system " << destination << endl;
+                cout << "client " << client_num << " sent all the packets to system " << destination << endl;
             }
             else if(command_tokens[0] == "RECEIVE") {
-                string frame =  client_num + " " + command_tokens[2] + " "; 
+                string packet =  client_num + " " + command_tokens[2] + " "; 
                 if(command_tokens[1].size() < 50) {
-                    frame+=command_tokens[1] + " ";
-                    for(int i = command_tokens[1].size(); i <= 49; i++) frame+='x';
+                    packet+=command_tokens[1] + " ";
+                    for(int i = command_tokens[1].size(); i <= 49; i++) packet+='x';
                 }
                 else if(command_tokens[1].size() > 50) {
-                    for(int i = 0; i < 50; i++) frame+=command_tokens[1][i];
+                    for(int i = 0; i < 50; i++) packet+=command_tokens[1][i];
                 }
-                frame += " x";
-                write_on_pipe(router_writing_pipe, frame);
-                cout << "Message to " << router_writing_pipe << " : " << frame << "\n";
+                packet += " x";
+                write_on_pipe(client_writing_pipe, packet);
+                cout << "Message to " << client_writing_pipe << " : " << packet << "\n";
             }
             close(manager);
         }
         else if(FD_ISSET(router_p, &rfds)) {
             string message = read_message_from_pipe(router_p);
-            char source = message[0];
-            if(message[2] != client_num[0]) continue;
-            string file_name = "./client_"+ client_num + "_output_" + to_string(output_num) + ".txt";
+            vector <string> command_tokens = tokenize(message);
+            string msg_des = command_tokens[1];
+            if(msg_des != client_num) 
+                continue;
+            string file_name = "./client_"+ client_num + "output" + to_string(output_num) + ".txt";
             fstream output;
             if(message[message.size() - 1] == '1') {
                 output.open(file_name,ios::app);
@@ -141,7 +143,7 @@ int main(int argc, char **argv) {
                 message.erase(message.size() - 2,2);
                 output.write((char*) message.c_str(),message.size());
                 output.close();
-                cout << "client " << client_num << " received all the frames from system " << source << endl;
+                cout << "client " << client_num << " received all the packets from system " << command_tokens[0] << endl;
                 output_num++;
             }
             if(message[message.size() - 1] == '0') {
@@ -152,15 +154,14 @@ int main(int argc, char **argv) {
                 output.close();
             }
             if(message[message.size() - 1] == 'x') {
-                vector <string> command_tokens = tokenize(message);
                 string destination = command_tokens[0];
                 string file = command_tokens[2];
-                vector<string> frames = make_frames(file, client_num, destination);
-                for(int i = 0; i < frames.size(); i++) {
-                    write_on_pipe(router_writing_pipe,frames[i]);
+                vector<string> packets = make_packets(file, client_num, destination);
+                for(int i = 0; i < packets.size(); i++) {
+                    write_on_pipe(client_writing_pipe,packets[i]);
                     sleep(2);
                 }
-                cout << "client " << client_num << " sent all the frames to system " << destination << endl;
+                cout << "client " << client_num << " sent all the packets to system " << destination << endl;
             }
             close(router_p);
         }

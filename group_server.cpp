@@ -58,8 +58,10 @@ void write_on_pipe(string pipe, string message) {
 }
 
 void broadcast_new_group(string multicast_group_ip, string group_server_ip, string writing_pipe_name) {
-    string message = "BROADCAST_GROUP " + multicast_group_ip + " " + group_server_ip + " ";
-    write_on_pipe(writing_pipe_name, message);
+    string packet = "BROADCAST_GROUP " + multicast_group_ip + " " + group_server_ip + " ";
+    while(packet.size() < 50)
+        packet += "x";
+    write_on_pipe(writing_pipe_name, packet);
 }
 
 
@@ -76,8 +78,8 @@ int main(int argc, char **argv) {
     tv.tv_sec = 5;
     tv.tv_usec = 0;
 
-    string router_reading_pipe;
-    string router_writing_pipe;
+    string client_reading_pipe;
+    string client_writing_pipe;
 
     fd_set rfds;
     int max_fd;
@@ -89,14 +91,14 @@ int main(int argc, char **argv) {
         FD_SET(manager, &rfds);
         max_fd = manager;
 
-        if(router_reading_pipe != "") {
-            router_p = open(router_reading_pipe.c_str(), O_RDONLY | O_NONBLOCK);
+        if(client_reading_pipe != "") {
+            router_p = open(client_reading_pipe.c_str(), O_RDONLY | O_NONBLOCK);
             FD_SET(router_p, &rfds);
             max_fd = router_p;
         }
 
         if (!select(max_fd + 1, &rfds, NULL, NULL, &tv)) {
-            if(router_reading_pipe != "") {
+            if(client_reading_pipe != "") {
                 close(max_fd);
             }
             close(manager);
@@ -107,21 +109,21 @@ int main(int argc, char **argv) {
             string message = read_message_from_pipe(manager);
             vector <string> command_tokens = tokenize(message);
             if (command_tokens[0] == "CONNECTED_TO_ROUTER") {
-                router_reading_pipe = command_tokens[1];
-                mkfifo(router_reading_pipe.c_str(), 0666);
-                cout << "Pipe created with name: " << router_reading_pipe << endl;
-                router_writing_pipe = "./client_" + group_server_ip + "_" + router_reading_pipe.erase(0,2) ;
+                client_reading_pipe = command_tokens[1];
+                mkfifo(client_reading_pipe.c_str(), 0666);
+                cout << "Pipe created with name: " << client_reading_pipe << endl;
+                client_writing_pipe = "./client_" + group_server_ip + "_" + client_reading_pipe.erase(0,2) ;
             }
             else if(command_tokens[0] == "MULTICAST_IP") {
                 group_multicast_ip = command_tokens[1];
-                broadcast_new_group(group_multicast_ip, group_server_ip, router_reading_pipe);
+                broadcast_new_group(group_multicast_ip, group_server_ip, client_writing_pipe);
             }
             // else if(command_tokens[0] == "SEND") {
             //     string destination = command_tokens[2];
             //     string file = command_tokens[1];
             //     vector<string> packets = make_packets(file, group_server_num, destination);
             //     for(int i = 0; i < packets.size(); i++) {
-            //         write_on_pipe(router_writing_pipe,packets[i]);
+            //         write_on_pipe(client_writing_pipe,packets[i]);
             //         sleep(2);
             //     }
             //     cout << "group_server " << group_server_num << " sent all the packets to system " << destination << endl;
@@ -136,16 +138,18 @@ int main(int argc, char **argv) {
             //         for(int i = 0; i < 50; i++) packet+=command_tokens[1][i];
             //     }
             //     packet += " x";
-            //     write_on_pipe(router_writing_pipe, packet);
-            //     cout << "Message to " << router_writing_pipe << " : " << packet << "\n";
+            //     write_on_pipe(client_writing_pipe, packet);
+            //     cout << "Message to " << client_writing_pipe << " : " << packet << "\n";
             // }
             close(manager);
         }
         else if(FD_ISSET(router_p, &rfds)) {
             string message = read_message_from_pipe(router_p);
-            char source = message[0];
-            if(message[2] != group_server_num[0]) continue;
-            string file_name = "./client_"+ group_server_num + "_output_" + to_string(output_num) + ".txt";
+            vector <string> command_tokens = tokenize(message);
+            string msg_des = command_tokens[1];
+            if(msg_des != group_server_ip) 
+                continue;
+            string file_name = "./client_"+ group_server_ip + "output" + to_string(output_num) + ".txt";
             fstream output;
             if(message[message.size() - 1] == '1') {
                 output.open(file_name,ios::app);
@@ -153,7 +157,7 @@ int main(int argc, char **argv) {
                 message.erase(message.size() - 2,2);
                 output.write((char*) message.c_str(),message.size());
                 output.close();
-                cout << "group_server " << group_server_num << " received all the packets from system " << source << endl;
+                cout << "client " << group_server_ip << " received all the packets from system " << command_tokens[0] << endl;
                 output_num++;
             }
             if(message[message.size() - 1] == '0') {
@@ -164,15 +168,14 @@ int main(int argc, char **argv) {
                 output.close();
             }
             if(message[message.size() - 1] == 'x') {
-                vector <string> command_tokens = tokenize(message);
                 string destination = command_tokens[0];
                 string file = command_tokens[2];
-                vector<string> packets = make_packets(file, group_server_num, destination);
+                vector<string> packets = make_packets(file, group_server_ip, destination);
                 for(int i = 0; i < packets.size(); i++) {
-                    write_on_pipe(router_writing_pipe,packets[i]);
+                    write_on_pipe(client_writing_pipe,packets[i]);
                     sleep(2);
                 }
-                cout << "group_server " << group_server_num << " sent all the packets to system " << destination << endl;
+                cout << "client " << group_server_ip << " sent all the packets to system " << destination << endl;
             }
             close(router_p);
         }

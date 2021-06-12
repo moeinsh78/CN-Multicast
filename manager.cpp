@@ -1,15 +1,9 @@
 #include "manager.hpp"
+#include "settings.h"
+
 using namespace std;
 
 Manager::Manager() {
-    // for(int ports_num: router_ports) 
-    //     router_ports.push_back(ports_num);
-
-    // for(string ip: client_ip) 
-    //     clients_ip.push_back(ip);
-
-    // for(string ip: router_ip) 
-    //     routers_ip.push_back(ip);
     logged_in_client = "";
     for(list<int> connection: cl_connections) {
         vector<int> new_connection;
@@ -37,7 +31,6 @@ void Manager::start() {
             create_client(i + 1);
         }
     }
-    
     for(int i = 0; i < NUM_OF_ROUTERS; i++) 
         create_router(i + 1, router_ports[i]);
     
