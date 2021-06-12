@@ -128,14 +128,14 @@ int main(int argc, char **argv) {
                 }
                 else {
                     message = read_message_from_pipe(fd);
-                    vector <string> frame = tokenize(message);
-                    string destination = frame[1];
-                    string source = frame[0];
+                    vector <string> packet = tokenize(message);
+                    string destination = packet[1];
+                    string source = packet[0];
                     int port = search_ft(forwarding_table, destination);
                     int source_port;
                     string sending_pipe = "./router_" + to_string(router_id) + "_port_" + to_string(port) + ".pipe";
                     write_on_pipe(sending_pipe, message);
-                    cout << "router "<< router_num << " sent the frame to the host " << destination << " with port " << port << endl; 
+                    cout << "router "<< router_num << " sent the packet to the host " << destination << " with port " << port << endl; 
                     close(fd);
                 }
             }

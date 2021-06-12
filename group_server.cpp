@@ -27,26 +27,26 @@ vector<string> tokenize(string message) {
     vector <string> command_tokens(begin, end);
     return command_tokens;    
 }
-vector<string> make_frames(string file, string source, string destination) {
+vector<string> make_packets(string file, string source, string destination) {
     int pipe = open(file.c_str(), O_RDONLY | O_NONBLOCK);
     char temp[100000];
     read(pipe, temp, 100000);
     string msg(temp);
-    vector<string> frames;
+    vector<string> packets;
     while(1) {
-        string frame;
-        frame = source + " " + destination + " ";
+        string packet;
+        packet = source + " " + destination + " ";
         if(msg.size() <= 50) { 
-            frame+=msg;
-            frame += " 1";
-            frames.push_back(frame);
-            return frames;
+            packet+=msg;
+            packet += " 1";
+            packets.push_back(packet);
+            return packets;
         }
         for(string::size_type i = 0; i < 50; ++i) {
-            frame += msg[i];
+            packet += msg[i];
         }
-        frame += " 0";
-        frames.push_back(frame);
+        packet += " 0";
+        packets.push_back(packet);
         msg.erase(0,50);
     }
 }
@@ -57,12 +57,13 @@ void write_on_pipe(string pipe, string message) {
     return;
 }
 int main(int argc, char **argv) {
+    string group_multicast_ip = "";
     vector<string> pipe_file_names;
-    string client_num(argv[1]);
-    string manager_pipe = "./manager_client_" + client_num + ".pipe";
+    string group_server_num(argv[1]);
+    string manager_pipe = "./manager_server_" + group_server_num + ".pipe";
 
     pipe_file_names.push_back(manager_pipe);
-    cout << "New client process created -- Num: " << client_num << endl;
+    cout << "New group server process created -- Num: " << group_server_num << endl;
 
     struct timeval tv;
     tv.tv_sec = 5;
@@ -102,38 +103,41 @@ int main(int argc, char **argv) {
                 router_reading_pipe = command_tokens[1];
                 mkfifo(router_reading_pipe.c_str(), 0666);
                 cout << "Pipe created with name: " << router_reading_pipe << endl;
-                router_writing_pipe = "./client_" + client_num + "_" + router_reading_pipe.erase(0,2) ;
+                router_writing_pipe = "./client_" + group_server_num + "_" + router_reading_pipe.erase(0,2) ;
             }
-            else if(command_tokens[0] == "SEND") {
-                string destination = command_tokens[2];
-                string file = command_tokens[1];
-                vector<string> frames = make_frames(file, client_num, destination);
-                for(int i = 0; i < frames.size(); i++) {
-                    write_on_pipe(router_writing_pipe,frames[i]);
-                    sleep(2);
-                }
-                cout << "client " << client_num << " sent all the frames to system " << destination << endl;
+            else if(command_tokens[0] == "MULTICAST_IP") {
+                group_multicast_ip = command_tokens[1];
             }
-            else if(command_tokens[0] == "RECEIVE") {
-                string frame =  client_num + " " + command_tokens[2] + " "; 
-                if(command_tokens[1].size() < 50) {
-                    frame+=command_tokens[1] + " ";
-                    for(int i = command_tokens[1].size(); i <= 49; i++) frame+='x';
-                }
-                else if(command_tokens[1].size() > 50) {
-                    for(int i = 0; i < 50; i++) frame+=command_tokens[1][i];
-                }
-                frame += " x";
-                write_on_pipe(router_writing_pipe, frame);
-                cout << "Message to " << router_writing_pipe << " : " << frame << "\n";
-            }
+            // else if(command_tokens[0] == "SEND") {
+            //     string destination = command_tokens[2];
+            //     string file = command_tokens[1];
+            //     vector<string> packets = make_packets(file, group_server_num, destination);
+            //     for(int i = 0; i < packets.size(); i++) {
+            //         write_on_pipe(router_writing_pipe,packets[i]);
+            //         sleep(2);
+            //     }
+            //     cout << "group_server " << group_server_num << " sent all the packets to system " << destination << endl;
+            // }
+            // else if(command_tokens[0] == "RECEIVE") {
+            //     string packet =  group_server_num + " " + command_tokens[2] + " "; 
+            //     if(command_tokens[1].size() < 50) {
+            //         packet+=command_tokens[1] + " ";
+            //         for(int i = command_tokens[1].size(); i <= 49; i++) packet+='x';
+            //     }
+            //     else if(command_tokens[1].size() > 50) {
+            //         for(int i = 0; i < 50; i++) packet+=command_tokens[1][i];
+            //     }
+            //     packet += " x";
+            //     write_on_pipe(router_writing_pipe, packet);
+            //     cout << "Message to " << router_writing_pipe << " : " << packet << "\n";
+            // }
             close(manager);
         }
         else if(FD_ISSET(router_p, &rfds)) {
             string message = read_message_from_pipe(router_p);
             char source = message[0];
-            if(message[2] != client_num[0]) continue;
-            string file_name = "./client_"+ client_num + "_output_" + to_string(output_num) + ".txt";
+            if(message[2] != group_server_num[0]) continue;
+            string file_name = "./client_"+ group_server_num + "_output_" + to_string(output_num) + ".txt";
             fstream output;
             if(message[message.size() - 1] == '1') {
                 output.open(file_name,ios::app);
@@ -141,7 +145,7 @@ int main(int argc, char **argv) {
                 message.erase(message.size() - 2,2);
                 output.write((char*) message.c_str(),message.size());
                 output.close();
-                cout << "client " << client_num << " received all the frames from system " << source << endl;
+                cout << "group_server " << group_server_num << " received all the packets from system " << source << endl;
                 output_num++;
             }
             if(message[message.size() - 1] == '0') {
@@ -155,12 +159,12 @@ int main(int argc, char **argv) {
                 vector <string> command_tokens = tokenize(message);
                 string destination = command_tokens[0];
                 string file = command_tokens[2];
-                vector<string> frames = make_frames(file, client_num, destination);
-                for(int i = 0; i < frames.size(); i++) {
-                    write_on_pipe(router_writing_pipe,frames[i]);
+                vector<string> packets = make_packets(file, group_server_num, destination);
+                for(int i = 0; i < packets.size(); i++) {
+                    write_on_pipe(router_writing_pipe,packets[i]);
                     sleep(2);
                 }
-                cout << "client " << client_num << " sent all the frames to system " << destination << endl;
+                cout << "group_server " << group_server_num << " sent all the packets to system " << destination << endl;
             }
             close(router_p);
         }
