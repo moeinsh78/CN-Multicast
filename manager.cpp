@@ -62,6 +62,14 @@ void Manager::execute_command(string command) {
             set_multicast_ip(user_num, command_tokens[1]);
     }
     else if (command_tokens[0] == "show_group") {
+        if(logged_in_client == "") {
+            cout << "Need to login to a client!\n";
+            return;
+        }
+        else if(is_group_server[stoi(logged_in_client)]) {
+            cout << "Only clients can see groups\n";
+            return;
+        }
         show_group();
     }
     else if (command_tokens[0] == "join_group") {
@@ -74,6 +82,30 @@ void Manager::execute_command(string command) {
             return;
         }
         join_group(stoi(logged_in_client), command_tokens[1]);
+    }
+    else if (command_tokens[0] == "leave_group") {
+        if(logged_in_client == "") {
+            cout << "Need to login to a client!\n";
+            return;
+        }
+        else if(is_group_server[stoi(logged_in_client)]) {
+            cout << "Only clients can join groups\n";
+            return;
+        }
+        leave_group(stoi(logged_in_client), command_tokens[1]);
+    }
+    else if (command_tokens[0] == "send") {
+        string file = command_tokens[1];
+        string group = command_tokens[2];
+        if(logged_in_client == "") {
+            cout << "Need to login to a client!\n";
+            return;
+        }
+        else if(is_group_server[stoi(logged_in_client)]) {
+            cout << "Only clients can send files\n";
+            return;
+        }
+        send(stoi(logged_in_client), file, group);
     }
     return;
 }
@@ -126,22 +158,22 @@ void Manager::connect_routers(int router1, int port1, int router2, int port2) {
     return;
 }
 
-void Manager::send(string file_path, string source, string destination) {
-    string source_pipe = "./manager_client_" + source + ".pipe";
-    string message = "SEND " + file_path  + " " + destination;
+void Manager::send(int client_num, std::string file, std::string group) {
+    string source_pipe = "./manager_client_" + to_string(client_num) + ".pipe";
+    string message = "SEND " + file  + " " + group;
     write_on_pipe(source_pipe, message);
     cout << "Message to " << source_pipe << " : " << message << "\n";
     return;
 }
 
-void Manager::receive(string destination, string file, string source) {
+/*void Manager::receive(string destination, string file, string source) {
     string source_pipe = "./manager_client_" + destination + ".pipe";
     string message = "RECEIVE " + file  + " " + source;
     write_on_pipe(source_pipe, message);
     cout << "Message to " << source_pipe << " : " << message << "\n";
     return;
 
-}
+}*/
 void Manager::create_router(int router_num, int num_of_ports) {
     string pipe_name = "./manager_router_" + to_string(router_num) + ".pipe";
     mkfifo(pipe_name.c_str(), 0666);
@@ -230,4 +262,10 @@ void Manager::join_group(int client_num, string group_ip) {
     write_on_pipe(pipe_name, message);
     return;
 }
-    
+void Manager::leave_group(int client_num, string group_ip) {
+    string pipe_name = "./manager_client_" + to_string(client_num) + ".pipe";
+    string message = "LEAVE_GROUP " + group_ip;
+    cout << message << "  ------ " << pipe_name <<endl;
+    write_on_pipe(pipe_name, message);
+    return;
+}

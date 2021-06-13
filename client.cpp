@@ -108,14 +108,14 @@ int main(int argc, char **argv) {
                 client_writing_pipe = "./client_" + client_num + "_" + client_reading_pipe.erase(0,2) ;
             }
             else if(command_tokens[0] == "SEND") {
-                string destination = command_tokens[2];
+                string group = command_tokens[2];
                 string file = command_tokens[1];
-                vector<string> packets = make_packets(file, client_num, destination);
+                vector<string> packets = make_packets(file, client_num, group);
                 for(int i = 0; i < packets.size(); i++) {
                     write_on_pipe(client_writing_pipe,packets[i]);
                     sleep(2);
                 }
-                cout << "client " << client_num << " sent all the packets to system " << destination << endl;
+                cout << "client " << client_num << " sent all the packets to group " << group << endl;
             }
             else if(command_tokens[0] == "RECEIVE") {
                 string packet =  client_num + " " + command_tokens[2] + " "; 
@@ -141,6 +141,20 @@ int main(int argc, char **argv) {
                     join_request += "x";
                 write_on_pipe(client_writing_pipe, join_request);
                 cout << "Client " << client_num << " requested to joined group " << group_ip << "\n";
+            }
+            else if (command_tokens[0] == "LEAVE_GROUP") {
+                string group_ip = command_tokens[1];
+                string leave_request = "REQUEST_LEAVE_GROUP " + client_num + " GROUP_IP " + group_ip + " ";
+                for(int j = 0; j < joined_groups.size(); j++) {
+                    if(joined_groups[j] == group_ip) {
+                        joined_groups.erase(joined_groups.begin() + j);
+                        break;
+                    }
+                }
+                while(leave_request.size() < 50)
+                    leave_request += "x";
+                write_on_pipe(client_writing_pipe, leave_request);
+                cout << "Client " << client_num << " requested to leave group " << group_ip << "\n";
             }
             close(manager);
         }
