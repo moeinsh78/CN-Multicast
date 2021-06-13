@@ -28,6 +28,7 @@ string read_message_from_pipe(int pipe) {
 
 void write_on_pipe(string pipe, string message) {
     int fd = open(pipe.c_str(), O_TRUNC | O_WRONLY );
+    //sleep(2);
     write(fd, message.c_str(), message.size()+ 1);
     close(fd);
 }
@@ -47,18 +48,20 @@ int search_ft(vector < vector <string> > forwarding_table, string host) {
     return -1;
 }
 
-string search_writings(vector < vector<string> > writing_list, string switch_num) {
+int search_writings(vector < vector<string> > writing_list, string switch_num) {
     for(int i = 0; i < writing_list.size(); i++) {
-        if(writing_list[i][0] == switch_num) return writing_list[i][1];
+        if(writing_list[i][0] == switch_num) return stoi(writing_list[i][1]);
     }
-    return "";
+    return -1;
 }
 
 void broadcast(string message, string switch_num, int ports_num, int source_port) {
+    cout << "msg : " << message << endl;
     for(int i = 0; i < ports_num; i++) {
         if(source_port == i + 1) 
             continue;
-        string pipe = "./switch_" + switch_num + "_port_" + to_string(i+1) + ".pipe";
+        string pipe = "./router_" + switch_num + "_port_" + to_string(i+1) + ".pipe";
+        cout << "router "<<  switch_num <<" write for broadcast pipe: " << pipe << " with msg : " << message << endl;
         write_on_pipe(pipe, message);
     }
     return;
@@ -74,7 +77,7 @@ int main(int argc, char **argv) {
     int number_of_ports = stoi(ports_num);
 
     vector< vector<std::string> >  forwarding_table = forwarding_tables[router_id - 1];
-
+    
     cout << "New router process created -- Num: " << router_id << " number of Ports: " << number_of_ports << endl;
     string manager_pipe = "./manager_router_" + router_num + ".pipe";
     reading_list.push_back(manager_pipe);
@@ -86,10 +89,10 @@ int main(int argc, char **argv) {
     fd_set rfds;
     int lut_ind = 0;
     while (1) {
+        
         vector<string> new_files;
         vector<int> open_files;
         string message;
-
         FD_ZERO(&rfds);
         for (int i = 0; i < reading_list.size(); i++) {
             int pipe = open(reading_list[i].c_str(), O_RDONLY | O_NONBLOCK);
@@ -128,12 +131,14 @@ int main(int argc, char **argv) {
                         vector<string> row;
                         row.push_back(tokens[1]);
                         row.push_back(command_tokens[3]);
+                        cout << " WRITING LIST my r : "<< router_num <<" : ROUTER: " <<tokens[1] << " WRITE ON PORT: " << command_tokens[3]<<endl;
                         writing_list.push_back(row);
                         cout << "Pipe created with name: " << reading_pipe_name << endl;
                         close(fd);
                     }
                 }
                 else {
+                    message = read_message_from_pipe(fd);
                     vector <string> tokens;
                     stringstream check(reading_list[i]);
                     string ss;
@@ -141,30 +146,31 @@ int main(int argc, char **argv) {
                     {
                         tokens.push_back(ss);
                     }
-                    int received_port = stoi(tokens[3]);
                     message = read_message_from_pipe(fd);
                     string multicast_ip, server_ip;
                     vector <string> packet = tokenize(message);
                     if (packet[0] == "BROADCAST_GROUP") {
                         multicast_ip = packet[1];
                         server_ip = packet[2];
-                        int port = search_ft(forwarding_table, server_ip);
-                        if( port == received_port)
+                        int port;
+                        int received_port;
+                        if(tokens[0] == "./client"){
+                            port = search_ft(forwarding_table, server_ip);
+                            received_port = stoi(tokens[5]);
+                        } 
+                        else{
+                            port = search_ft(forwarding_table, server_ip);
+                            received_port =  search_writings(writing_list, tokens[1]);
+                        }
+                        if( port == received_port) {
+                            cout << "ROUTER: "<<router_num <<" found port: " << port <<" reading file: "<< reading_list[i] << " received: " << received_port << endl;
                             broadcast(message, router_num, stoi(ports_num), port);
+                        }
                         else {
+                            cout << "ROUTER: "<<router_num <<" found port: " << port <<" reading file: "<< reading_list[i] << " received: " << received_port << " DROPED" << endl;
                             close(fd);
                             continue;
                         }
-                    }
-                    else {
-                        string destination = packet[1];
-                        string source = packet[0];
-                        int port = search_ft(forwarding_table, destination);
-                        int source_port;
-                        string sending_pipe = "./router_" + to_string(router_id) + "_port_" + to_string(port) + ".pipe";
-                        write_on_pipe(sending_pipe, message);
-                        cout << "router "<< router_num << " sent the packet to the host " << destination << " with port " << port << endl; 
-                        close(fd);
                     }
                 }
             }

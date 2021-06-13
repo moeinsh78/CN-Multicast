@@ -61,6 +61,7 @@ void broadcast_new_group(string multicast_group_ip, string group_server_ip, stri
     string packet = "BROADCAST_GROUP " + multicast_group_ip + " " + group_server_ip + " ";
     while(packet.size() < 50)
         packet += "x";
+    cout << packet << " ---- yaaaaay --- "  << writing_pipe_name << endl;
     write_on_pipe(writing_pipe_name, packet);
 }
 

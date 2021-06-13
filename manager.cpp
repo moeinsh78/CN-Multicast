@@ -198,8 +198,9 @@ void Manager::create_group_server(int server_num) {
 
 
 void Manager::set_multicast_ip(int group_server_num, string multicast_ip) {
-    string pipe_name = "./manager_server_" + to_string(group_server_num) + ".pipe";
-    string message = "MULTICAST_IP" + multicast_ip;
+    string pipe_name = "./manager_client_" + to_string(group_server_num) + ".pipe";
+    string message = "MULTICAST_IP " + multicast_ip;
+    cout << message << "  ------ " << pipe_name <<endl;
     write_on_pipe(pipe_name, message);
     return;   
 }
