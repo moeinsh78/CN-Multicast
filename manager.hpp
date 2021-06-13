@@ -30,7 +30,6 @@ public:
     void connect_routers(int router1, int port1, int router2, int port2);
     void write_on_pipe(std::string client_pipe, std::string message);
     void send(int client_num, std::string file, std::string group);
-    //void receive(std::string destination, std::string file, std::string source);
     void show_group();
     void join_group(int client_num, string group_ip);
     void leave_group(int client_num, string group_ip);

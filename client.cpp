@@ -117,19 +117,6 @@ int main(int argc, char **argv) {
                 }
                 cout << "client " << client_num << " sent all the packets to group " << group << endl;
             }
-            else if(command_tokens[0] == "RECEIVE") {
-                string packet =  client_num + " " + command_tokens[2] + " "; 
-                if(command_tokens[1].size() < 50) {
-                    packet+=command_tokens[1] + " ";
-                    for(int i = command_tokens[1].size(); i <= 49; i++) packet+='x';
-                }
-                else if(command_tokens[1].size() > 50) {
-                    for(int i = 0; i < 50; i++) packet+=command_tokens[1][i];
-                }
-                packet += " x";
-                write_on_pipe(client_writing_pipe, packet);
-                cout << "Message to " << client_writing_pipe << " : " << packet << "\n";
-            }
             else if(command_tokens[0] == "SHOW_GROUP") {
                 for(int i = 0; i<available_groups.size() ; i++) cout << available_groups[i] << endl;
             }
@@ -145,6 +132,7 @@ int main(int argc, char **argv) {
             else if (command_tokens[0] == "LEAVE_GROUP") {
                 string group_ip = command_tokens[1];
                 string leave_request = "REQUEST_LEAVE_GROUP " + client_num + " GROUP_IP " + group_ip + " ";
+            
                 for(int j = 0; j < joined_groups.size(); j++) {
                     if(joined_groups[j] == group_ip) {
                         joined_groups.erase(joined_groups.begin() + j);

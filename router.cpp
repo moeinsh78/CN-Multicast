@@ -66,6 +66,58 @@ void broadcast(string message, string switch_num, int ports_num, int source_port
     return;
 }
 
+vector< vector<std::string> > disable_port_for_group(vector< vector<std::string> > multicast_table, string group_ip, string port) {
+    vector< vector<std::string> > table;
+    for(int i = 0; i < multicast_table.size(); i++) {
+        if(multicast_table[i][0] == group_ip && multicast_table[i][1] == port && multicast_table[i][2] == "enabled") {
+            vector<string> updated_row;
+            updated_row.push_back(multicast_table[i][0]);
+            updated_row.push_back(multicast_table[i][1]);
+            updated_row.push_back("disbaled");
+            table.push_back(updated_row);
+        }
+        else {
+            table.push_back(multicast_table[i]);
+        }
+    }
+    return table;
+}
+
+vector< vector<std::string> > enable_port_for_group(vector< vector<std::string> > multicast_table, string group_ip, string port) {
+    vector< vector<std::string> > table;
+    for(int i = 0; i < multicast_table.size(); i++) {
+        if(multicast_table[i][0] == group_ip && multicast_table[i][1] == port && multicast_table[i][2] == "disbaled") {
+            vector<string> updated_row;
+            updated_row.push_back(multicast_table[i][0]);
+            updated_row.push_back(multicast_table[i][1]);
+            updated_row.push_back("enabled");
+            table.push_back(updated_row);
+        }
+        else {
+            table.push_back(multicast_table[i]);
+        }
+    }
+    return table;
+}
+
+bool all_ports_disabled(vector< vector<std::string> > multicast_table, string group_ip) {
+    for(int i = 0; i < multicast_table.size(); i++) {
+        if(multicast_table[i][0] == group_ip && multicast_table[i][2] == "enabled") {
+            return false;
+        }
+    }
+    return true;
+}
+
+string find_source_port_for_group(vector< vector<std::string> > multicast_table, string group_ip) {
+    for(int i = 0; i < multicast_table.size(); i++) {
+        if(multicast_table[i][0] == group_ip && multicast_table[i][2] == "source") {
+            return multicast_table[i][1];
+        }
+    }
+    return "0";
+}
+
 int main(int argc, char **argv) {
     vector<string> reading_list;
     vector<vector<string> > writing_list;
@@ -74,7 +126,7 @@ int main(int argc, char **argv) {
     string ports_num(argv[2]);
     int router_id = stoi(router_num);
     int number_of_ports = stoi(ports_num);
-
+    vector< vector<std::string> > multicast_table;
     vector< vector<std::string> >  forwarding_table = forwarding_tables[router_id - 1];
     
     cout << "New router process created -- Num: " << router_id << " number of Ports: " << number_of_ports << endl;
@@ -166,14 +218,60 @@ int main(int argc, char **argv) {
                             received_port =  search_writings(writing_list, tokens[1]);
                         }
                         if( port == received_port) {
+                            for(int j = 1; j < number_of_ports + 1; j++) {
+                                vector<string> new_vec;
+                                new_vec.push_back(multicast_ip);
+                                new_vec.push_back(to_string(j));
+                                if(j = received_port) {
+                                    new_vec.push_back("source");
+                                }
+                                else {
+                                    new_vec.push_back("disabled");
+                                }
+                                multicast_table.push_back(new_vec);
+                            }
                             cout << "ROUTER: "<<router_num <<" found port: " << port <<" reading file: "<< reading_list[i] << " received: " << received_port << endl;
                             broadcast(message, router_num, stoi(ports_num), port);
                             close(fd);
                         }
                         else {
-                            cout << "ROUTER: "<<router_num <<" found port: " << port <<" reading file: "<< reading_list[i] << " received: " << received_port << " DROPED" << endl;
+                            cout << "ROUTER: "<< router_num <<" found port: " << port <<" reading file: "<< reading_list[i] << " received: " << received_port << " DROPPED" << endl;
                             close(fd);
                             continue;
+                        }
+                    }
+                    else if(packet[0] == "REQUEST_LEAVE_GROUP") {
+                        multicast_ip = packet[3];
+                        int received_port;
+                        if(tokens[0] == "./client"){
+                            received_port = stoi(tokens[5]);
+                        } 
+                        else{
+                            received_port = search_writings(writing_list, tokens[1]);
+                        }
+                        multicast_table = disable_port_for_group(multicast_table, multicast_ip, to_string(received_port));
+                        if(all_ports_disabled(multicast_table, multicast_ip)) {
+                            // forwarding prune message in the direction of group server
+                            string group_source_port = find_source_port_for_group(multicast_table, multicast_ip);
+                            string pipe_name = "./router_" + router_num + "_port_" + group_source_port + ".pipe";
+                            write_on_pipe(pipe_name, message);
+                        }
+                    }
+                    else if(packet[0] == "REQUEST_JOIN_GROUP") {
+                        multicast_ip = packet[3];
+                        int received_port;
+                        if(tokens[0] == "./client"){
+                            received_port = stoi(tokens[5]);
+                        } 
+                        else{
+                            received_port = search_writings(writing_list, tokens[1]);
+                        }
+                        if(all_ports_disabled(multicast_table, multicast_ip)) {
+                            // forwarding graft message in the direction of group server
+                            multicast_table = enable_port_for_group(multicast_table, multicast_ip, to_string(received_port));
+                            string group_source_port = find_source_port_for_group(multicast_table, multicast_ip);
+                            string pipe_name = "./router_" + router_num + "_port_" + group_source_port + ".pipe";
+                            write_on_pipe(pipe_name, message);
                         }
                     }
                 }

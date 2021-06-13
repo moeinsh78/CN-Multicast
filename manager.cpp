@@ -166,14 +166,6 @@ void Manager::send(int client_num, std::string file, std::string group) {
     return;
 }
 
-/*void Manager::receive(string destination, string file, string source) {
-    string source_pipe = "./manager_client_" + destination + ".pipe";
-    string message = "RECEIVE " + file  + " " + source;
-    write_on_pipe(source_pipe, message);
-    cout << "Message to " << source_pipe << " : " << message << "\n";
-    return;
-
-}*/
 void Manager::create_router(int router_num, int num_of_ports) {
     string pipe_name = "./manager_router_" + to_string(router_num) + ".pipe";
     mkfifo(pipe_name.c_str(), 0666);
