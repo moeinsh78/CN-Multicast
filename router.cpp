@@ -222,7 +222,7 @@ int main(int argc, char **argv) {
                                 vector<string> new_vec;
                                 new_vec.push_back(multicast_ip);
                                 new_vec.push_back(to_string(j));
-                                if(j = received_port) {
+                                if(j == received_port) {
                                     new_vec.push_back("source");
                                 }
                                 else {
