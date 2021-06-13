@@ -274,6 +274,14 @@ int main(int argc, char **argv) {
                             write_on_pipe(pipe_name, message);
                         }
                     }
+                    else if(packet[0] == "GROUP_PACKET") {
+                        for(int i = 0; i < multicast_table.size(); i++){
+                            if(multicast_table[i][0] == packet[1] && multicast_table[i][2] == "enabled") {
+                                string pipe_name = "./router_" + router_num + "_port_" + multicast_table[i][1] + ".pipe";
+                                write_on_pipe(pipe_name, message);    
+                            }
+                        }
+                    }
                 }
             }
             else close(fd);

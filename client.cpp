@@ -27,7 +27,7 @@ vector<string> tokenize(string message) {
     vector <string> command_tokens(begin, end);
     return command_tokens;    
 }
-vector<string> make_packets(string file, string source, string destination) {
+vector<string> make_packets(string file, string destination) {
     int pipe = open(file.c_str(), O_RDONLY | O_NONBLOCK);
     char temp[100000];
     read(pipe, temp, 100000);
@@ -35,7 +35,7 @@ vector<string> make_packets(string file, string source, string destination) {
     vector<string> packets;
     while(1) {
         string packet;
-        packet = source + " " + destination + " ";
+        packet = "GROUP_PACKET " + destination + " ";
         if(msg.size() <= 50) { 
             packet+=msg;
             packet += " 1";
@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
             else if(command_tokens[0] == "SEND") {
                 string group = command_tokens[2];
                 string file = command_tokens[1];
-                vector<string> packets = make_packets(file, client_num, group);
+                vector<string> packets = make_packets(file, group);
                 for(int i = 0; i < packets.size(); i++) {
                     write_on_pipe(client_writing_pipe,packets[i]);
                     sleep(2);
