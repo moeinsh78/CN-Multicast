@@ -28,7 +28,6 @@ string read_message_from_pipe(int pipe) {
 
 void write_on_pipe(string pipe, string message) {
     int fd = open(pipe.c_str(), O_TRUNC | O_WRONLY );
-    //sleep(2);
     write(fd, message.c_str(), message.size()+ 1);
     close(fd);
 }
@@ -106,6 +105,10 @@ int main(int argc, char **argv) {
         }
         for (int i = 0; i < open_files.size(); i++) {
             int fd = open_files[i];
+            for (int i = 0; i < reading_list.size(); i++) {
+                cout << "router: " << router_num << " reading list " << i << " is " << reading_list[i] << endl;
+            }
+            cout << "IN ROUTER: " << router_num << " I AM READING: " << reading_list[i] << endl;
             if(FD_ISSET(fd, &rfds)){
                 if(reading_list[i] == manager_pipe) { 
                     message = read_message_from_pipe(fd);
@@ -165,6 +168,7 @@ int main(int argc, char **argv) {
                         if( port == received_port) {
                             cout << "ROUTER: "<<router_num <<" found port: " << port <<" reading file: "<< reading_list[i] << " received: " << received_port << endl;
                             broadcast(message, router_num, stoi(ports_num), port);
+                            close(fd);
                         }
                         else {
                             cout << "ROUTER: "<<router_num <<" found port: " << port <<" reading file: "<< reading_list[i] << " received: " << received_port << " DROPED" << endl;

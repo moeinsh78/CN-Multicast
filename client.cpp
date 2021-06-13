@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
                 output.write((char*) message.c_str(),message.size());
                 output.close();
             }
-            if(message[message.size() - 1] == 'x') {
+            /*if(message[message.size() - 1] == 'x') {
                 string destination = command_tokens[0];
                 string file = command_tokens[2];
                 vector<string> packets = make_packets(file, client_num, destination);
@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
                     sleep(2);
                 }
                 cout << "client " << client_num << " sent all the packets to system " << destination << endl;
-            }
+            }*/
             close(router_p);
         }
         
