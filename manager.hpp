@@ -31,6 +31,8 @@ public:
     void write_on_pipe(std::string client_pipe, std::string message);
     void send(std::string file_path, std::string source, std::string destination);
     void receive(std::string destination, std::string file, std::string source);
+    void show_group();
+    void join_group(int client_num, string group_ip);
 private:
     // std::vector<int> router_ports;
     // std::vector<std::string> clients_ip;

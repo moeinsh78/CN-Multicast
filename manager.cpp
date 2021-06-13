@@ -61,10 +61,28 @@ void Manager::execute_command(string command) {
         if(is_group_server[user_num - 1])
             set_multicast_ip(user_num, command_tokens[1]);
     }
-    
+    else if (command_tokens[0] == "show_group") {
+        show_group();
+    }
+    else if (command_tokens[0] == "join_group") {
+        if(logged_in_client == "") {
+            cout << "Need to login to a client!\n";
+            return;
+        }
+        else if(is_group_server[stoi(logged_in_client)]) {
+            cout << "Only clients can join groups\n";
+            return;
+        }
+        join_group(stoi(logged_in_client), command_tokens[1]);
+    }
     return;
 }
 
+void Manager::show_group() {
+    string client_pipe = "./manager_client_" + logged_in_client + ".pipe";
+    string message = "SHOW_GROUP ";
+    write_on_pipe(client_pipe, message);    
+}
 
 void Manager::write_on_pipe(string pipe, string message) {
     int fd = open(pipe.c_str(), O_WRONLY | O_TRUNC);
@@ -203,5 +221,13 @@ void Manager::set_multicast_ip(int group_server_num, string multicast_ip) {
     cout << message << "  ------ " << pipe_name <<endl;
     write_on_pipe(pipe_name, message);
     return;   
+}
+
+void Manager::join_group(int client_num, string group_ip) {
+    string pipe_name = "./manager_client_" + to_string(client_num) + ".pipe";
+    string message = "JOIN_GROUP " + group_ip;
+    cout << message << "  ------ " << pipe_name <<endl;
+    write_on_pipe(pipe_name, message);
+    return;
 }
     

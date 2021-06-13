@@ -74,6 +74,9 @@ int main(int argc, char **argv) {
     fd_set rfds;
     int max_fd;
     int output_num = 1;
+
+    vector<string> available_groups;
+    vector<string> joined_groups;
     while (1) {
         FD_ZERO(&rfds);
         int router_p; 
@@ -127,6 +130,18 @@ int main(int argc, char **argv) {
                 write_on_pipe(client_writing_pipe, packet);
                 cout << "Message to " << client_writing_pipe << " : " << packet << "\n";
             }
+            else if(command_tokens[0] == "SHOW_GROUP") {
+                for(int i = 0; i<available_groups.size() ; i++) cout << available_groups[i] << endl;
+            }
+            else if (command_tokens[0] == "JOIN_GROUP") {
+                string group_ip = command_tokens[1];
+                string join_request = "REQUEST_JOIN_GROUP " + client_num + " GROUP_IP " + group_ip + " ";
+                joined_groups.push_back(group_ip);
+                while(join_request.size() < 50)
+                    join_request += "x";
+                write_on_pipe(client_writing_pipe, join_request);
+                cout << "Client " << client_num << " requested to joined group " << group_ip << "\n";
+            }
             close(manager);
         }
         else if(FD_ISSET(router_p, &rfds)) {
@@ -137,6 +152,7 @@ int main(int argc, char **argv) {
                 continue;
             string file_name = "./client_"+ client_num + "output" + to_string(output_num) + ".txt";
             fstream output;
+            string multicast_ip, server_ip;
             if(message[message.size() - 1] == '1') {
                 output.open(file_name,ios::app);
                 message.erase(0,4);
@@ -153,16 +169,11 @@ int main(int argc, char **argv) {
                 output.write((char*) message.c_str(),message.size());
                 output.close();
             }
-            /*if(message[message.size() - 1] == 'x') {
-                string destination = command_tokens[0];
-                string file = command_tokens[2];
-                vector<string> packets = make_packets(file, client_num, destination);
-                for(int i = 0; i < packets.size(); i++) {
-                    write_on_pipe(client_writing_pipe,packets[i]);
-                    sleep(2);
-                }
-                cout << "client " << client_num << " sent all the packets to system " << destination << endl;
-            }*/
+            if(command_tokens[0] == "BROADCAST_GROUP") {
+                multicast_ip = command_tokens[1];
+                server_ip = command_tokens[2];
+                available_groups.push_back(multicast_ip);
+            }
             close(router_p);
         }
         
